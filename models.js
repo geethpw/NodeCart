@@ -10,10 +10,13 @@ module.exports  =function(qagner) {
 		Category: Category,
 		Product: Product
 	};
-	
 
-	wagner.factory('Category', function() {
-		return Category;
+	// To ensure dry-ness register factories, in a loop
+
+	_.each(models, function(value, key) {
+		wanger.factory(key, function() {
+			return value;
+		});
 	});
 
 	return  {
