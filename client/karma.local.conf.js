@@ -13,7 +13,7 @@ module.exports = function(config) {
     browsers: ['Chrome'],
     port: 9876,
     proxies : {
-      '/8-examples': 'http://localhost:9876/base/'
+      '/B-examples': 'http://localhost:9876/base/'
     }
   });
 };

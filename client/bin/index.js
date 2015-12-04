@@ -1,17 +1,172 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-exports.UserMenuController = function($scope, $user) {
+exports.AddToCartController = function($scope, $http, $user, $timeout) {
+  $scope.addToCart = function(product) {
+    var obj = { product: product._id, quantity: 1 };
+    $user.user.data.cart.push(obj);
+
+    $http.
+      put('/api/v1/me/cart', $user.user).
+      success(function(data) {
+        $user.loadUser();
+        $scope.success = true;
+
+        $timeout(function() {
+          $scope.success = false;
+        }, 5000);
+      });
+  };
+};
+
+exports.CategoryProductsController = function($scope, $routeParams, $http) {
+  var encoded = encodeURIComponent($routeParams.category);
+
+  $scope.price = undefined;
+
+  $scope.handlePriceClick = function() {
+    if ($scope.price === undefined) {
+      $scope.price = -1;
+    } else {
+      $scope.price = 0 - $scope.price;
+    }
+    $scope.load();
+  };
+
+  $scope.load = function() {
+    var queryParams = { price: $scope.price };
+    $http.
+      get('/api/v1/product/category/' + encoded, { params: queryParams }).
+      success(function(data) {
+        $scope.products = data.products;
+      });
+  };
+
+  $scope.load();
+
+  setTimeout(function() {
+    $scope.$emit('CategoryProductsController');
+  }, 0);
+};
+
+exports.CategoryTreeController = function($scope, $routeParams, $http) {
+  var encoded = encodeURIComponent($routeParams.category);
+  $http.
+    get('/api/v1/category/id/' + encoded).
+    success(function(data) {
+      $scope.category = data.category;
+      $http.
+        get('/api/v1/category/parent/' + encoded).
+        success(function(data) {
+          $scope.children = data.categories;
+        });
+    });
+
+  setTimeout(function() {
+    $scope.$emit('CategoryTreeController');
+  }, 0);
+};
+
+exports.CheckoutController = function($scope, $user, $http) {
+  // For update cart
+  $scope.user = $user;
+
+  $scope.updateCart = function() {
+    $http.
+      put('/api/v1/me/cart', $user.user).
+      success(function(data) {
+        $scoped.updated = true;
+      });
+  };
+
+  // For checkout
+  Stripe.setPublishableKey('pk_test_KVC0AphhVxm52zdsM4WoBstU');
+
+  $scope.stripeToken = {
+    number: '4242424242424242',
+    cvc: '123',
+    exp_month: '12',
+    exp_year: '2016'
+  };
+
+  $scope.checkout = function() {
+    $scope.error = null;
+    Stripe.card.createToken($scope.stripeToken, function(status, response) {
+      if (status.error) {
+        $scope.error = status.error;
+        return;
+      }
+
+      $http.
+        post('/api/v1/checkout', { stripeToken: response.id }).
+        success(function(data) {
+          $scope.checkedOut = true;
+          $user.user.data.cart = [];
+        });
+    });
+  };
+};
+
+exports.NavBarController = function($scope, $user) {
   $scope.user = $user;
 
   setTimeout(function() {
-    $scope.$emit('UserMenuController');
+    $scope.$emit('NavBarController');
+  }, 0);
+};
+
+exports.ProductDetailsController = function($scope, $routeParams, $http) {
+  var encoded = encodeURIComponent($routeParams.id);
+
+  $http.
+    get('/api/v1/product/id/' + encoded).
+    success(function(data) {
+      $scope.product = data.product;
+    });
+
+  setTimeout(function() {
+    $scope.$emit('ProductDetailsController');
   }, 0);
 };
 
 },{}],2:[function(require,module,exports){
-exports.userMenu = function() {
+exports.addToCart = function() {
   return {
-    controller: 'UserMenuController',
-    templateUrl: '/8-examples/templates/user_menu.html'
+    controller: 'AddToCartController',
+    templateUrl: '/B-examples/templates/add_to_cart.html'
+  };
+};
+
+exports.categoryProducts = function() {
+  return {
+    controller: 'CategoryProductsController',
+    templateUrl: '/B-examples/templates/category_products.html'
+  }
+};
+
+exports.categoryTree = function() {
+  return {
+    controller: 'CategoryTreeController',
+    templateUrl: '/B-examples/templates/category_tree.html'
+  }
+};
+
+exports.checkout = function() {
+  return {
+    controller: 'CheckoutController',
+    templateUrl: '/B-examples/templates/checkout.html'
+  };
+};
+
+exports.navBar = function() {
+  return {
+    controller: 'NavBarController',
+    templateUrl: '/B-examples/templates/nav_bar.html'
+  };
+};
+
+exports.productDetails = function() {
+  return {
+    controller: 'ProductDetailsController',
+    templateUrl: '/B-examples/templates/product_details.html'
   };
 };
 
@@ -21,18 +176,33 @@ var directives = require('./directives');
 var services = require('./services');
 var _ = require('underscore');
 
-var app = angular.module('mean-retail', ['ng']);
+var components = angular.module('mean-retail.components', ['ng']);
 
 _.each(controllers, function(controller, name) {
-  app.controller(name, controller);
+  components.controller(name, controller);
 });
 
 _.each(directives, function(directive, name) {
-  app.directive(name, directive);
+  components.directive(name, directive);
 });
 
 _.each(services, function(factory, name) {
-  app.factory(name, factory);
+  components.factory(name, factory);
+});
+
+var app = angular.module('mean-retail', ['mean-retail.components', 'ngRoute']);
+
+app.config(function($routeProvider) {
+  $routeProvider.
+    when('/category/:category', {
+      templateUrl: '/B-examples/templates/category_view.html'
+    }).
+    when('/checkout', {
+      template: '<checkout></checkout>'
+    }).
+    when('/product/:id', {
+      template: '<product-details></product-details>'
+    });
 });
 
 },{"./controllers":1,"./directives":2,"./services":6,"underscore":5}],4:[function(require,module,exports){
@@ -1414,8 +1584,8 @@ exports.$user = function($http) {
       success(function(data) {
         s.user = data.user;
       }).
-      error(function(data, $status) {
-        if ($status === status.UNAUTHORIZED) {
+      error(function(data, status) {
+        if (status === status.UNAUTHORIZED) {
           s.user = null;
         }
       });

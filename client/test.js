@@ -1,4 +1,4 @@
-describe('User menu', function() {
+describe('Nav Bar', function() {
   var injector;
   var element;
   var scope;
@@ -6,7 +6,7 @@ describe('User menu', function() {
   var httpBackend;
 
   beforeEach(function() {
-    injector = angular.injector(['mean-retail', 'ngMockE2E']);
+    injector = angular.injector(['mean-retail.components', 'ngMockE2E']);
     intercepts = {};
 
     injector.invoke(function($rootScope, $compile, $httpBackend) {
@@ -15,7 +15,7 @@ describe('User menu', function() {
       $httpBackend.whenGET(/.*\/templates\/.*/i).passThrough();
       httpBackend = $httpBackend;
 
-      element = $compile('<user-menu></user-menu>')(scope);
+      element = $compile('<nav-bar></nav-bar>')(scope);
       scope.$apply();
     });
   });
@@ -25,7 +25,7 @@ describe('User menu', function() {
       user: { profile: { picture: 'myPic' } }
     });
 
-    scope.$on('UserMenuController', function() {
+    scope.$on('NavBarController', function() {
       assert.equal(element.find('.title').text().trim(), 'MEAN Retail');
 
       httpBackend.flush();

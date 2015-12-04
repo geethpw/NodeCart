@@ -9,8 +9,8 @@ exports.$user = function($http) {
       success(function(data) {
         s.user = data.user;
       }).
-      error(function(data, $status) {
-        if ($status === status.UNAUTHORIZED) {
+      error(function(data, status) {
+        if (status === status.UNAUTHORIZED) {
           s.user = null;
         }
       });
